@@ -57,17 +57,21 @@ function wkhtmltopdf(input, options, callback) {
   
   // call the callback with null error when the process exits successfully
   if (callback)
-    child.on('exit', function() { callback(null); });
+    child.on('exit', function() {
+      callback(null);
+    });
     
   // setup error handling
   var stream = child.stdout;
-  function handleError(err) {
-    child.removeAllListeners('exit');
-    child.kill();
-    
-    // call the callback if there is one
-    if (callback)
-      callback(err);
+  function handleError(err, soft) {
+    if (!soft) {
+      child.removeAllListeners('exit');
+      child.kill();
+
+      // call the callback if there is one
+      if (callback)
+        callback(err);
+    }
       
     // if not, or there are listeners for errors, emit the error event
     if (!callback || stream.listeners('error').length > 0)
@@ -76,7 +80,7 @@ function wkhtmltopdf(input, options, callback) {
   
   child.once('error', handleError);
   child.stderr.once('data', function(err) {
-    handleError(new Error((err || '').toString().trim()));
+    handleError(new Error((err || '').toString().trim()), true);
   });
   
   // write input to stdin if it isn't a url
